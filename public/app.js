@@ -106,7 +106,9 @@
       renderDirections(data.directions || []);
     } catch (err) {
       if (err.name === "AbortError") return;
-      errorMsg.textContent = err.message || "Something went wrong talking to the model.";
+      errorMsg.textContent = err.message.includes("429")
+        ? "Groq is briefly rate-limited. Wait about 30 seconds, then try this brief again."
+        : err.message || "Something went wrong talking to the model.";
       errorMsg.hidden = false;
       if (err.noKey) setupHint.hidden = false;
     } finally {

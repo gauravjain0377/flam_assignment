@@ -13,6 +13,7 @@ const GROQ_API_KEY = process.env.GROQ_API_KEY;
 const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
 const MODEL = process.env.GROQ_MODEL || "qwen/qwen3.8-27b";
 const generationCache = new Map();
+const generationInFlight = new Map();
 const CACHE_TTL_MS = 10 * 60 * 1000;
 
 const SUPPORTED_LANGUAGES = [
@@ -32,9 +33,9 @@ Return ONLY valid JSON, no markdown fences, no commentary, matching exactly this
     {
       "id": "short-kebab-slug",
       "angle": "2-4 word label for the creative angle, e.g. 'Urgency & scarcity'",
-      "headline": "punchy headline, max 8 words",
-      "subhead": "one supporting sentence, max 16 words",
-      "cta": "a short call to action, max 4 words",
+      "headline": "punchy headline, max 6 words",
+      "subhead": "one supporting sentence, max 12 words",
+      "cta": "a short call to action, max 3 words",
       "mood": "one word mood, e.g. bold / playful / premium / warm / minimal",
       "palette": ["#hex1", "#hex2", "#hex3"],
       "translations": {
@@ -45,11 +46,10 @@ Return ONLY valid JSON, no markdown fences, no commentary, matching exactly this
 }
 
 Rules:
-- palette must be 3 hex colors that visually suit the product/brand and mood, with enough contrast for white text to sit on the first color.
-- translations must be genuine, natural translations in each target language's own script (not transliteration), matching the meaning and tone of the English version, same max word counts as a guide.
-- Always include an "English" entry in translations equal to the main headline/subhead/cta even if English was requested as a language.
-- Keep language playful/native, not robotic literal translation.
-- Output strictly valid JSON. No trailing commas.`;
+- palette must be 3 hex colors with enough contrast for white text on the first color.
+- translate naturally in each target language's own script and keep the copy short.
+- Always include an "English" entry equal to the main English copy.
+- Output strictly valid JSON.`;
 }
 
 function singleDirectionSystemPrompt(languages) {
@@ -60,9 +60,9 @@ Return ONLY valid JSON, no markdown fences, matching exactly:
 {
   "id": "short-kebab-slug",
   "angle": "2-4 word label, keep close to the original angle",
-  "headline": "punchy headline, max 8 words",
-  "subhead": "one supporting sentence, max 16 words",
-  "cta": "a short call to action, max 4 words",
+  "headline": "punchy headline, max 6 words",
+  "subhead": "one supporting sentence, max 12 words",
+  "cta": "a short call to action, max 3 words",
   "mood": "one word mood",
   "palette": ["#hex1", "#hex2", "#hex3"],
   "translations": {
@@ -120,7 +120,7 @@ async function callGroq(systemPrompt, userPrompt) {
     body: JSON.stringify({
       model: MODEL,
       temperature: 0.9,
-      max_tokens: 2000,
+      max_tokens: 1200,
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: userPrompt },
@@ -131,7 +131,11 @@ async function callGroq(systemPrompt, userPrompt) {
   if (!resp.ok) {
     const errText = await resp.text();
     const err = new Error(`Groq API error (${resp.status}): ${errText}`);
-    err.code = "GROQ_ERROR";
+    err.code = resp.status === 429 ? "RATE_LIMITED" : "GROQ_ERROR";
+    if (resp.status === 429) {
+      const retryAfter = Number(resp.headers.get("retry-after"));
+      err.retryAfter = Number.isFinite(retryAfter) ? retryAfter : 30;
+    }
     throw err;
   }
 
@@ -164,19 +168,31 @@ app.post("/api/generate", async (req, res) => {
   if (cached && cached.expiresAt > Date.now()) {
     return res.json({ ...cached.payload, cached: true, generationMs: Date.now() - started });
   }
-  try {
-    const parsed = await callGroq(
-      directionsSystemPrompt(safeCount, safeLangs),
-      `Campaign brief: ${brief.trim()}`
-    );
+  const existingRequest = generationInFlight.get(cacheKey);
+  if (existingRequest) {
+    try {
+      return res.json({ ...(await existingRequest), deduplicated: true, generationMs: Date.now() - started });
+    } catch (err) {
+      const status = err.code === "NO_KEY" ? 500 : err.code === "RATE_LIMITED" ? 429 : 502;
+      return res.status(status).json({ error: err.message, retryAfter: err.retryAfter });
+    }
+  }
+  const generation = callGroq(
+    directionsSystemPrompt(safeCount, safeLangs),
+    `Campaign brief: ${brief.trim()}`
+  ).then((parsed) => {
     const directions = Array.isArray(parsed.directions) ? parsed.directions : [];
     const payload = { directions, generationMs: Date.now() - started, model: MODEL };
     generationCache.set(cacheKey, { payload, expiresAt: Date.now() + CACHE_TTL_MS });
-    res.json(payload);
+    return payload;
+  }).finally(() => generationInFlight.delete(cacheKey));
+  generationInFlight.set(cacheKey, generation);
+  try {
+    res.json(await generation);
   } catch (err) {
     console.error(err);
-    const status = err.code === "NO_KEY" ? 500 : 502;
-    res.status(status).json({ error: err.message });
+    const status = err.code === "NO_KEY" ? 500 : err.code === "RATE_LIMITED" ? 429 : 502;
+    res.status(status).json({ error: err.message, retryAfter: err.retryAfter });
   }
 });
 
@@ -199,7 +215,7 @@ app.post("/api/regenerate", async (req, res) => {
     res.json({ direction: parsed, generationMs: Date.now() - started });
   } catch (err) {
     console.error(err);
-    if (err.code === "NO_KEY" || err.code === "GROQ_ERROR") {
+    if (err.code === "NO_KEY" || err.code === "GROQ_ERROR" || err.code === "RATE_LIMITED") {
       return res.json({ direction: fallbackDirection(brief, angle, safeLangs), fallback: true, generationMs: Date.now() - started });
     }
     res.status(502).json({ error: err.message });
@@ -215,6 +231,7 @@ app.get("/api/qr", async (req, res) => {
   if (!text || text.length > 2048) return res.status(400).send("Invalid QR text");
   try {
     const png = await QRCode.toBuffer(text, { type: "png", width: 220, margin: 1 });
+    res.set("Cache-Control", "public, max-age=86400");
     res.type("png").send(png);
   } catch (err) {
     res.status(500).send("Unable to create QR code");

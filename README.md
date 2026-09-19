@@ -54,14 +54,25 @@ Getting a Groq key takes about two minutes, no credit card: create an
 account at console.groq.com, go to **API Keys → Create Key**, and paste it
 into `.env` as `GROQ_API_KEY`.
 
-## Deploy it (for the actual cold email)
+## Deploy it
 
-Any Node host works (Render, Railway, Fly.io, a small VPS). Two things
-matter:
-- Set `GROQ_API_KEY` as an environment variable on the host — never commit
-  `.env`.
-- The server serves `/public` itself, so no separate frontend deploy is
-  needed — one service, one URL.
+Render is the simplest fit for this prototype because it runs the existing
+Express server directly. The included `render.yaml` uses `npm ci`, starts
+`npm start`, and checks `/api/health`. Create a Render Web Service from this
+repository, add `GROQ_API_KEY` as a secret environment variable, and deploy.
+Do not deploy this as a static-only Vercel site: the server-side Groq proxy and
+local QR endpoint need a Node runtime. Vercel is possible later with API
+functions, but it would require restructuring this app.
+
+The generated share URL uses the deployed origin automatically, so QR codes
+and embeds point to the live HTTPS URL after deployment. The QR PNG is made
+locally by the server and cached for one day.
+
+Groq usage is deliberately controlled: repeated full briefs are cached for ten
+minutes, simultaneous identical requests are deduplicated, translations are
+generated in the same request, and the response budget is capped at 1,200
+tokens. A remix uses one direction request and falls back locally during a
+temporary Groq outage or rate limit.
 
 ## Notes on the choices made here
 
