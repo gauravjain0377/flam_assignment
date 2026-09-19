@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>FLAM / signal studio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css" />
+<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <a class="brand" href="#studio" aria-label="Flam signal studio">flam<span>/</span>signal</a>
+    <div class="topbar-center"><span class="status-dot"></span>creative systems online</div>
+    <span class="topbar-tag">prompt-powered directions / v1.0</span>
+  </div>
+</header>
+
+<main>
+  <section class="hero">
+    <div class="hero-copy">
+      <p class="hero-eyebrow"><span>01</span> / shape the signal</p>
+      <h1>Make the<br><i>unexpected</i><br>obvious.</h1>
+      <p class="hero-sub">One brief becomes a living board of campaign directions. Switch language, mood, and momentum without starting over.</p>
+    </div>
+    <div class="hero-orbit" aria-hidden="true">
+      <div class="orbit-ring ring-one"></div>
+      <div class="orbit-ring ring-two"></div>
+      <div class="orbit-core"><span>FLAM</span><small>interactive by design</small></div>
+      <span class="orbit-label label-top">PROMPT</span>
+      <span class="orbit-label label-right">PLAY</span>
+      <span class="orbit-label label-bottom">DISTRIBUTE</span>
+    </div>
+  </section>
+
+  <section class="studio" id="studio">
+    <aside class="brief-panel">
+      <div class="panel-index">A / brief input</div>
+      <h2>Give it a<br><strong>point of view.</strong></h2>
+      <textarea id="briefInput" rows="5" placeholder="e.g. Festive-season launch for a direct-to-consumer sneaker brand, energetic, targeting Gen Z shoppers in tier-1 Indian cities"></textarea>
+
+      <div class="prompt-seed-row">
+        <button type="button" class="seed-btn" data-seed="A monsoon-ready sneaker drop for restless city runners. Make it feel like the first splash of freedom.">MONSOON RUN</button>
+        <button type="button" class="seed-btn" data-seed="A midnight launch for a small-batch coffee brand. Make the ritual feel secret, electric, and worth waking up for.">NIGHT RITUAL</button>
+      </div>
+
+      <h3>Languages in the mix</h3>
+      <div class="lang-chips" id="langChips"></div>
+
+      <div class="control-heading"><h3>Number of worlds</h3><span id="countLabel">4</span></div>
+      <div class="count-row">
+        <input type="range" id="countSlider" min="2" max="6" value="4" />
+      </div>
+
+      <button id="generateBtn" class="primary-btn">
+        <span class="btn-label">Open the signal</span>
+        <span class="btn-spinner" hidden></span>
+      </button>
+
+      <div class="panel-note"><span class="mini-pulse"></span>One generation preloads every selected language.</div>
+
+      <p class="error-msg" id="errorMsg" hidden></p>
+
+      <div class="setup-hint" id="setupHint" hidden>
+        <strong>No Groq key detected on the server.</strong>
+        <p>Copy <code>.env.example</code> to <code>.env</code>, add a free key from
+        <a href="https://console.groq.com/keys" target="_blank" rel="noopener">console.groq.com/keys</a>, and restart the server.</p>
+      </div>
+    </aside>
+
+    <div class="canvas-panel">
+      <div class="canvas-header">
+        <div><p class="panel-index">B / live canvas</p><h2>Find your <em>frequency.</em></h2></div>
+        <span class="node-tag brief-tag">source node</span>
+        <svg class="canvas-connector" viewBox="0 0 100 20" preserveAspectRatio="none"><line x1="0" y1="10" x2="100" y2="10" /></svg>
+        <span class="node-tag" id="directionCountTag">awaiting signal</span>
+      </div>
+
+      <div class="canvas-empty" id="canvasEmpty">
+        <div class="empty-mark">/ / /</div>
+        <p>Write a brief and open the signal.<br>Distinct creative worlds will land here.</p>
+      </div>
+
+      <div class="node-grid" id="nodeGrid" hidden></div>
+    </div>
+  </section>
+
+  <section class="why">
+    <div class="section-kicker">C / built for motion</div>
+    <h2>Small latency.<br><em>Large possibility.</em></h2>
+    <div class="why-grid">
+      <div class="why-card">
+        <span class="why-metric" id="switchMetric">— ms</span>
+        <p class="why-label">Language switch latency</p>
+        <p class="why-body">Translations arrive with the direction, so changing language is a local switch, not another model call.</p>
+      </div>
+      <div class="why-card">
+        <span class="why-metric">3 ways</span>
+        <p class="why-label">Distribution, no rebuild</p>
+        <p class="why-body">Every direction can leave the canvas as a link, embed, or scannable Flam Code.</p>
+      </div>
+      <div class="why-card">
+        <span class="why-metric">1 click</span>
+        <p class="why-label">Remix, don't restart</p>
+        <p class="why-body">Remix one world in place. Its angle stays anchored while the execution evolves.</p>
+      </div>
+    </div>
+  </section>
+</main>
+
+<div class="modal-backdrop" id="modalBackdrop" hidden>
+  <div class="modal">
+    <button class="modal-close" id="modalClose" aria-label="Close">&times;</button>
+    <h3 id="modalTitle">Distribute this direction</h3>
+    <div class="modal-body">
+      <div class="modal-row">
+        <label>Sharable link</label>
+        <div class="copy-row">
+          <input type="text" id="shareLink" readonly />
+          <button id="copyLink" class="ghost-btn">Copy</button>
+        </div>
+      </div>
+      <div class="modal-row">
+        <label>Embed snippet</label>
+        <div class="copy-row">
+          <textarea id="embedSnippet" rows="3" readonly></textarea>
+          <button id="copyEmbed" class="ghost-btn">Copy</button>
+        </div>
+      </div>
+      <div class="modal-row qr-row">
+        <label>Flam Code</label>
+        <div id="qrHolder"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="preview-shell" id="previewShell" hidden>
+  <!-- standalone shared-card view target, filled by app.js when URL has #card= -->
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>

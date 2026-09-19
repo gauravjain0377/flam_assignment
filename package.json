@@ -1,0 +1,19 @@
+{
+  "name": "flam-prompt-studio",
+  "version": "1.0.0",
+  "description": "Prompt-to-campaign generation studio prototype, built for Flam's Software Engineering Intern application.",
+  "main": "server.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
