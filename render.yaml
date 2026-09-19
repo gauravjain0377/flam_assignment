@@ -10,3 +10,5 @@ services:
         sync: false
       - key: GROQ_MODEL
         value: qwen/qwen3.8-27b
+      - key: PUBLIC_BASE_URL
+        sync: false

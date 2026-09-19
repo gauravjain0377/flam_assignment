@@ -12,6 +12,7 @@ app.use(express.static(path.join(__dirname, "public")));
 const GROQ_API_KEY = process.env.GROQ_API_KEY;
 const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
 const MODEL = process.env.GROQ_MODEL || "qwen/qwen3.8-27b";
+const PUBLIC_BASE_URL = (process.env.PUBLIC_BASE_URL || "").replace(/\/$/, "");
 const generationCache = new Map();
 const generationInFlight = new Map();
 const CACHE_TTL_MS = 10 * 60 * 1000;
@@ -102,6 +103,27 @@ function fallbackDirection(brief, angle, languages) {
   return base;
 }
 
+function demoDirections(brief, count, languages) {
+  const concepts = [
+    ["First Spark", "Start with the feeling before the feature.", "Feel it first", "#ff6948", "bold"],
+    ["Quiet Voltage", "Make the everyday moment feel quietly electric.", "Turn it on", "#08cfc4", "vibrant"],
+    ["Street Signal", "Give the product a point of view people can spot instantly.", "Show your side", "#8daeff", "direct"],
+    ["After Hours", "Build a world that feels made for the ones still moving.", "Stay in motion", "#d8f84e", "restless"],
+    ["Human Loop", "Turn a useful product into a ritual worth returning to.", "Make it yours", "#e08bff", "warm"],
+    ["New Ritual", "Make the next small choice feel like a personal upgrade.", "Begin again", "#f6c453", "optimistic"],
+  ];
+  return Array.from({ length: count }, (_, index) => {
+    const [angle, subhead, cta, accent, mood] = concepts[index % concepts.length];
+    const headline = `${angle}: ${brief.trim().split(/\s+/).slice(0, 4).join(" ")}`;
+    const palette = [accent, "#11110f", index % 2 ? "#d8f84e" : "#f1efe8"];
+    const translations = {};
+    languages.forEach((language) => {
+      translations[language] = { headline, subhead, cta };
+    });
+    return { id: `demo-${index + 1}`, angle, headline, subhead, cta, mood, palette, translations };
+  });
+}
+
 async function callGroq(systemPrompt, userPrompt) {
   if (!GROQ_API_KEY) {
     const err = new Error(
@@ -150,8 +172,12 @@ app.get("/api/languages", (req, res) => {
   res.json({ languages: SUPPORTED_LANGUAGES });
 });
 
+app.get("/api/config", (req, res) => {
+  res.json({ publicBaseUrl: PUBLIC_BASE_URL || null });
+});
+
 app.post("/api/generate", async (req, res) => {
-  const { brief, languages = ["English", "Hindi"], count = 4 } = req.body || {};
+  const { brief, languages = ["English", "Hindi"], count = 4, demo = false } = req.body || {};
 
   if (!brief || typeof brief !== "string" || brief.trim().length < 6) {
     return res.status(400).json({ error: "Give me a real campaign brief (at least a few words)." });
@@ -162,11 +188,19 @@ app.post("/api/generate", async (req, res) => {
   if (safeLangs.length === 0) safeLangs.push("English");
   const safeCount = Math.min(Math.max(parseInt(count, 10) || 4, 2), 6);
 
+  if (demo === true) {
+    return res.json({
+      directions: demoDirections(brief, safeCount, safeLangs),
+      source: "demo",
+      generationMs: 0,
+    });
+  }
+
   const started = Date.now();
   const cacheKey = JSON.stringify({ brief: brief.trim(), languages: safeLangs, count: safeCount });
   const cached = generationCache.get(cacheKey);
   if (cached && cached.expiresAt > Date.now()) {
-    return res.json({ ...cached.payload, cached: true, generationMs: Date.now() - started });
+    return res.json({ ...cached.payload, cached: true, source: "ai", generationMs: Date.now() - started });
   }
   const existingRequest = generationInFlight.get(cacheKey);
   if (existingRequest) {
@@ -188,7 +222,7 @@ app.post("/api/generate", async (req, res) => {
   }).finally(() => generationInFlight.delete(cacheKey));
   generationInFlight.set(cacheKey, generation);
   try {
-    res.json(await generation);
+    res.json({ ...(await generation), source: "ai" });
   } catch (err) {
     console.error(err);
     const status = err.code === "NO_KEY" ? 500 : err.code === "RATE_LIMITED" ? 429 : 502;

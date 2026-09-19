@@ -31,10 +31,8 @@ available: prompt → structured creative → instant variants → distribution.
 
 ## Stack
 
-- **Backend:** Node.js + Express. Holds the Groq API key server-side (never
   exposed to the browser), calls Groq's OpenAI-compatible chat completions
   endpoint, and returns structured JSON.
-- **Frontend:** vanilla HTML/CSS/JS, no build step — dark theme matching
   Flam's own site, a node-graph layout echoing their "Prompt-Powered
   Creation" canvas. QR codes are generated locally by the Node server so
   sharing still works when the browser is offline.
@@ -76,15 +74,14 @@ temporary Groq outage or rate limit.
 
 ## Notes on the choices made here
 
-- **No client-exposed API key.** An early version of this considered a
   "bring your own key" client-side mode so it could run with zero backend
   at all — but shipping a real key in browser JS (even a free-tier one) is
   the kind of thing a reviewing engineer would flag, so this uses a proper
   backend proxy instead.
-- **Defensive JSON parsing.** LLMs occasionally wrap structured output in
   markdown fences even when told not to; `extractJson()` in `server.js`
   strips fences and locates the outer `{...}` before parsing, so a stray
   code fence doesn't break generation.
-- **Translations are generated, not translated after the fact** — the
   model is asked for genuine translations in-language up front, so
   switching languages never triggers a second network call.
+ After Render gives you the HTTPS URL, set `PUBLIC_BASE_URL` to that exact URL
+ in the service environment variables and redeploy before sharing any QR code.
