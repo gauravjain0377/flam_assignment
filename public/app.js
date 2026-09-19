@@ -255,7 +255,6 @@
 
   async function regenerateCard(direction, cardEl, btn) {
     btn.disabled = true;
-    const originalLabel = btn.textContent;
     btn.textContent = "Remixing...";
     try {
       const res = await fetch("/api/regenerate", {
@@ -269,11 +268,9 @@
       fresh.style.animationDelay = "0ms";
       cardEl.replaceWith(fresh);
     } catch (err) {
-      btn.textContent = "Failed — retry";
-      setTimeout(() => {
-        btn.textContent = originalLabel;
-        btn.disabled = false;
-      }, 1500);
+      btn.textContent = "Retry remix";
+      btn.disabled = false;
+      btn.title = err.message || "Remix failed. Try again.";
       return;
     }
   }
@@ -290,13 +287,16 @@
 
     const qrHolder = el("qrHolder");
     qrHolder.innerHTML = "";
-    if (window.QRCode) {
-      const canvas = document.createElement("canvas");
-      qrHolder.appendChild(canvas);
-      window.QRCode.toCanvas(canvas, link, { width: 176, margin: 1 }, () => {});
-    } else {
-      qrHolder.textContent = "QR library unavailable offline.";
-    }
+    const qrImage = document.createElement("img");
+    qrImage.alt = "Scannable share code for this direction";
+    qrImage.width = 196;
+    qrImage.height = 196;
+    qrImage.src = `/api/qr?text=${encodeURIComponent(link)}`;
+    qrImage.onerror = () => {
+      qrHolder.textContent = "Share code unavailable. Copy the link above.";
+      qrHolder.classList.add("qr-error");
+    };
+    qrHolder.appendChild(qrImage);
   }
 
   function closeModal() {

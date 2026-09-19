@@ -36,7 +36,8 @@ available: prompt → structured creative → instant variants → distribution.
   endpoint, and returns structured JSON.
 - **Frontend:** vanilla HTML/CSS/JS, no build step — dark theme matching
   Flam's own site, a node-graph layout echoing their "Prompt-Powered
-  Creation" canvas, QR generation via `qrcode.js` from jsDelivr.
+  Creation" canvas. QR codes are generated locally by the Node server so
+  sharing still works when the browser is offline.
 
 ## Run it locally
 

@@ -82,14 +82,14 @@ h1 i, h2 em { color: var(--coral); font-style: normal; }
 .canvas-connector line { stroke: var(--line); stroke-width: 1; stroke-dasharray: 3 5; }
 .canvas-empty { min-height: 355px; display: grid; place-content: center; border: 1px dashed var(--line); color: #7e8076; text-align: center; font-size: 0.87rem; line-height: 1.6; }
 .empty-mark { margin-bottom: 18px; color: var(--acid); font: 1.1rem var(--mono); letter-spacing: 0.3em; }
-.node-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 16px; }
+.node-grid { display: grid; grid-template-columns: repeat(2, minmax(280px, 1fr)); gap: 18px; }
 .card { overflow: hidden; border: 1px solid var(--line); background: var(--panel); opacity: 0; transform: translateY(12px); animation: cardIn 0.5s ease forwards; }
 @keyframes cardIn { to { opacity: 1; transform: translateY(0); } }
-.card-art { min-height: 225px; padding: 21px; display: flex; flex-direction: column; justify-content: flex-end; color: #fff; text-shadow: 0 1px 6px rgba(0,0,0,0.4); }
+.card-art { min-height: 260px; padding: 24px; display: flex; flex-direction: column; justify-content: flex-end; color: #fff; text-shadow: 0 1px 6px rgba(0,0,0,0.4); }
 .card-angle { margin: 0 0 auto; font: 0.62rem var(--mono); letter-spacing: 0.08em; text-transform: uppercase; opacity: 0.8; }
-.card-headline { margin: 0 0 7px; font-size: 1.42rem; line-height: 1.02; letter-spacing: -0.07em; }
-.card-sub { margin: 0; font-size: 0.78rem; line-height: 1.4; opacity: 0.9; }
-.card-body { padding: 15px; }
+.card-headline { margin: 0 0 8px; font-size: clamp(1.45rem, 2.2vw, 2rem); line-height: 1.02; letter-spacing: -0.07em; }
+.card-sub { max-width: 30ch; margin: 0; font-size: 0.86rem; line-height: 1.45; opacity: 0.9; }
+.card-body { min-height: 184px; padding: 18px; }
 .card-cta { display: inline-block; margin-bottom: 14px; padding: 6px 9px; background: var(--paper); color: var(--ink); font: 0.68rem var(--mono); }
 .lang-tabs { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 14px; }
 .lang-tab { padding: 4px 6px; border: 1px solid var(--line); background: transparent; color: var(--paper-dim); font: 0.61rem var(--mono); }
@@ -107,13 +107,25 @@ h1 i, h2 em { color: var(--coral); font-style: normal; }
 .why-metric { color: var(--acid); font: 1.5rem var(--mono); }
 .why-label { margin: 28px 0 9px; font-size: 0.83rem; font-weight: 700; }
 .why-body { max-width: 300px; margin: 0; color: var(--paper-dim); font-size: 0.8rem; line-height: 1.55; }
+.creator { padding: 92px 4vw 110px; border-top: 1px solid var(--line); background: var(--acid); color: var(--ink); }
+.creator > * { max-width: 1320px; margin-left: auto; margin-right: auto; }
+.creator .section-kicker { color: #59670e; }
+.creator-layout { display: grid; grid-template-columns: 1fr 0.8fr; gap: 8vw; align-items: end; }
+.creator-stamp { margin: 0 0 18px; font: 0.68rem var(--mono); letter-spacing: 0.1em; }
+.creator h2 { max-width: 700px; margin: 0; font-size: clamp(3rem, 7vw, 7.2rem); line-height: 0.88; letter-spacing: -0.09em; }
+.creator h2 em { color: var(--coral); font-style: normal; }
+.creator-note { max-width: 320px; padding-bottom: 5px; }
+.creator-note p { margin: 0 0 24px; font-size: 1rem; line-height: 1.5; }
+.creator-note a { display: inline-flex; gap: 14px; align-items: center; color: var(--ink); font: 0.72rem var(--mono); text-transform: uppercase; text-decoration: none; border-bottom: 1px solid var(--ink); padding-bottom: 7px; }
+.creator-note a span { font-size: 1.1rem; }
 .modal-backdrop { position: fixed; inset: 0; z-index: 50; display: flex; align-items: center; justify-content: center; padding: 20px; background: rgba(10, 10, 8, 0.86); }
-.modal { position: relative; width: 100%; max-width: 480px; padding: 27px; border: 1px solid var(--acid); background: var(--panel); }
+.modal { position: relative; width: 100%; max-width: 720px; max-height: min(760px, calc(100vh - 40px)); overflow: auto; padding: 32px; border: 1px solid var(--acid); background: var(--panel); }
 .modal-close { position: absolute; top: 13px; right: 15px; border: 0; background: none; color: var(--paper-dim); font-size: 1.5rem; }
-.modal h3 { margin: 0 0 23px; font-size: 1.25rem; letter-spacing: -0.05em; }
+.modal h3 { margin: 0 0 26px; font-size: 1.55rem; letter-spacing: -0.05em; }
 .modal-row { margin-bottom: 17px; } .modal-row label { display: block; margin-bottom: 7px; color: var(--paper-dim); font: 0.62rem var(--mono); text-transform: uppercase; }
-.copy-row { display: flex; gap: 8px; } .copy-row input, .copy-row textarea { min-width: 0; flex: 1; padding: 9px; border: 1px solid var(--line); background: var(--ink); color: var(--paper); font: 0.68rem var(--mono); resize: none; }
-.qr-row { text-align: center; } #qrHolder { display: inline-block; padding: 10px; background: #fff; } #qrHolder canvas { display: block; }
+.copy-row { display: grid; grid-template-columns: minmax(0, 1fr) 120px; gap: 10px; } .copy-row input, .copy-row textarea { min-width: 0; width: 100%; padding: 11px; border: 1px solid var(--line); background: var(--ink); color: var(--paper); font: 0.68rem var(--mono); resize: none; }
+.copy-row .ghost-btn { min-height: 42px; }
+.qr-row { text-align: center; margin-top: 26px; } #qrHolder { display: inline-flex; min-width: 220px; min-height: 220px; align-items: center; justify-content: center; padding: 11px; background: #fff; } #qrHolder img { display: block; width: 196px; height: 196px; image-rendering: pixelated; } #qrHolder.qr-error { color: var(--ink); font: 0.72rem var(--mono); }
 .preview-shell { position: fixed; inset: 0; z-index: 100; display: flex; align-items: center; justify-content: center; padding: 24px; background: var(--ink); }
 .preview-card { width: 100%; max-width: 420px; } .preview-back { display: block; margin-top: 18px; color: var(--paper-dim); font: 0.72rem var(--mono); text-align: center; }
 @media (max-width: 900px) {
@@ -136,6 +148,7 @@ h1 i, h2 em { color: var(--coral); font-style: normal; }
   .why { padding-top: 65px; }
   .why-grid { grid-template-columns: 1fr; }
   .why-card { min-height: auto; }
+  .creator-layout { grid-template-columns: 1fr; gap: 32px; }
   .copy-row { display: block; }
   .copy-row .ghost-btn { width: 100%; margin-top: 7px; }
 }

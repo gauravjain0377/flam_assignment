@@ -2,6 +2,7 @@ require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const path = require("path");
+const QRCode = require("qrcode");
 
 const app = express();
 app.use(cors());
@@ -207,6 +208,17 @@ app.post("/api/regenerate", async (req, res) => {
 
 app.get("/api/health", (req, res) => {
   res.json({ ok: true, hasKey: Boolean(GROQ_API_KEY), model: MODEL });
+});
+
+app.get("/api/qr", async (req, res) => {
+  const text = typeof req.query.text === "string" ? req.query.text : "";
+  if (!text || text.length > 2048) return res.status(400).send("Invalid QR text");
+  try {
+    const png = await QRCode.toBuffer(text, { type: "png", width: 220, margin: 1 });
+    res.type("png").send(png);
+  } catch (err) {
+    res.status(500).send("Unable to create QR code");
+  }
 });
 
 const PORT = process.env.PORT || 3000;
