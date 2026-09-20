@@ -68,9 +68,10 @@ locally by the server and cached for one day.
 
 Groq usage is deliberately controlled: repeated full briefs are cached for ten
 minutes, simultaneous identical requests are deduplicated, translations are
-generated in the same request, and the response budget is capped at 1,200
-tokens. A remix uses one direction request and falls back locally during a
-temporary Groq outage or rate limit.
+generated in the same request, and the response budget is capped at 850
+tokens. Rate-limit responses are passed through from Groq with the provider's
+retry time. A remix uses one direction request and falls back locally during a
+temporary Groq outage.
 
 ## Notes on the choices made here
 

@@ -74,11 +74,26 @@ Return ONLY valid JSON, no markdown fences, matching exactly:
 
 function extractJson(text) {
   // Groq occasionally wraps JSON in fences even when told not to; strip defensively.
-  const cleaned = text.replace(/```json|```/g, "").trim();
+  const cleaned = text.replace(/```json|```/gi, "").trim();
   const start = cleaned.indexOf("{");
   const end = cleaned.lastIndexOf("}");
-  if (start === -1 || end === -1) throw new Error("No JSON object found in model output");
-  return JSON.parse(cleaned.slice(start, end + 1));
+  if (start === -1 || end === -1) {
+    const err = new Error("No JSON object found in model output");
+    err.code = "INVALID_JSON";
+    throw err;
+  }
+
+  const candidate = cleaned
+    .slice(start, end + 1)
+    .replace(/,\s*([}\]])/g, "$1");
+  try {
+    return JSON.parse(candidate);
+  } catch (parseError) {
+    const err = new Error("Groq returned invalid JSON");
+    err.code = "INVALID_JSON";
+    err.cause = parseError;
+    throw err;
+  }
 }
 
 function fallbackDirection(brief, angle, languages) {
@@ -141,8 +156,9 @@ async function callGroq(systemPrompt, userPrompt) {
     },
     body: JSON.stringify({
       model: MODEL,
-      temperature: 0.9,
-      max_tokens: 1200,
+      temperature: 0.7,
+      max_tokens: 850,
+      response_format: { type: "json_object" },
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: userPrompt },
@@ -155,8 +171,14 @@ async function callGroq(systemPrompt, userPrompt) {
     const err = new Error(`Groq API error (${resp.status}): ${errText}`);
     err.code = resp.status === 429 ? "RATE_LIMITED" : "GROQ_ERROR";
     if (resp.status === 429) {
-      const retryAfter = Number(resp.headers.get("retry-after"));
-      err.retryAfter = Number.isFinite(retryAfter) ? retryAfter : 30;
+      const headerRetryAfter = Number(resp.headers.get("retry-after"));
+      const bodyRetryMatch = errText.match(/in\s+([\d.]+)s/i);
+      const bodyRetryAfter = bodyRetryMatch ? Number(bodyRetryMatch[1]) : NaN;
+      err.retryAfter = Number.isFinite(headerRetryAfter)
+        ? headerRetryAfter
+        : Number.isFinite(bodyRetryAfter)
+          ? Math.ceil(bodyRetryAfter)
+          : 30;
     }
     throw err;
   }
@@ -225,6 +247,14 @@ app.post("/api/generate", async (req, res) => {
     res.json({ ...(await generation), source: "ai" });
   } catch (err) {
     console.error(err);
+    if (err.code === "INVALID_JSON") {
+      return res.json({
+        directions: demoDirections(brief, safeCount, safeLangs),
+        source: "local-fallback",
+        fallbackReason: "invalid-json",
+        generationMs: Date.now() - started,
+      });
+    }
     const status = err.code === "NO_KEY" ? 500 : err.code === "RATE_LIMITED" ? 429 : 502;
     res.status(status).json({ error: err.message, retryAfter: err.retryAfter });
   }
@@ -249,7 +279,7 @@ app.post("/api/regenerate", async (req, res) => {
     res.json({ direction: parsed, generationMs: Date.now() - started });
   } catch (err) {
     console.error(err);
-    if (err.code === "NO_KEY" || err.code === "GROQ_ERROR" || err.code === "RATE_LIMITED") {
+    if (err.code === "NO_KEY" || err.code === "GROQ_ERROR" || err.code === "RATE_LIMITED" || err.code === "INVALID_JSON") {
       return res.json({ direction: fallbackDirection(brief, angle, safeLangs), fallback: true, generationMs: Date.now() - started });
     }
     res.status(502).json({ error: err.message });
